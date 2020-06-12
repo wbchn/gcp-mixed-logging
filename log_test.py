@@ -1,15 +1,56 @@
-
+import os
 import pytest
 
-import log
 
-def test_debug():
+@pytest.fixture
+def log(monkeypatch):
+    # using data-stat@kakapo-grandwin.iam.gserviceaccount.com account.
+    # monkeypatch.setenv('GOOGLE_APPLICATION_CREDENTIALS', '')
+    monkeypatch.setenv('GOOGLE_CLOUD_PROJECT', os.environ.get('GCLOUD_PROJECT', 'dataprocess'))
+
+    import log
+    log.init("data", "test")
+    print(log.stdout_logger.full_name)
+    return log
+
+
+def test_debug(log):
     log.debug('this is a debug message')
 
-def test_debug_struct():
+
+def test_debug_struct(log):
     log.debug({
         "integer": 999,
         "text": "plain text",
+        "nested": {
+            "sub_field": "a nest message"
+        }
+    })
+
+
+def test_error_struct(log):
+    log.error({
+        "integer": 999,
+        "text": "plain text",
+        "nested": {
+            "sub_field": "a nest message"
+        }
+    })
+
+
+def test_metric_struct(log):
+    log.metric('cpu_usage', {
+        "integer": 47,
+        "text": "metric will send to es.",
+        "nested": {
+            "sub_field": "a nest message"
+        }
+    })
+
+
+def test_persist_struct(log):
+    log.persist('impression', {
+        "text": "log forever",
         "nested": {
             "sub_field": "a nest message"
         }

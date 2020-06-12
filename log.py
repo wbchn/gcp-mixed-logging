@@ -22,7 +22,7 @@ def init(module: str, stage: str, **kw):
     stderr_logger = client.logger(stderr_name)
 
 
-def _log_dup(tag: str, msg: Any, logger: logging.logger.Logger = stdout_logger, severity='INFO', **kw) -> None:
+def _log_dup(tag: str, msg: Any, logger: logging.logger.Logger=None, severity='INFO', **kw) -> None:
     if isinstance(msg, str):
         msg = {"message": msg}
 
@@ -32,22 +32,22 @@ def _log_dup(tag: str, msg: Any, logger: logging.logger.Logger = stdout_logger, 
 
 def debug(msg):
     """Write debug log to Cloud Logging."""
-    return _log_dup("debug", msg, severity='INFO')
+    return _log_dup("debug", msg, logger=stdout_logger, severity='INFO')
 
 
 def info(msg):
     """Write info log to Cloud Logging."""
-    return _log_dup("info", msg, severity='INFO')
+    return _log_dup("info", msg, logger=stdout_logger, severity='INFO')
 
 
 def warning(msg):
     """Write warning log to Cloud Logging."""
-    return _log_dup("warn", msg, stderr_logger, severity='WARNING')
+    return _log_dup("warn", msg, logger=stderr_logger, severity='WARNING')
 
 
 def error(msg):
     """Write error log to Cloud Logging."""
-    return _log_dup("error", msg, stderr_logger, severity='ERROR')
+    return _log_dup("error", msg, logger=stderr_logger, severity='ERROR')
 
 
 def metric(tag: str, msg: dict) -> None:
@@ -57,7 +57,7 @@ def metric(tag: str, msg: dict) -> None:
         "@timestamp": int(time.time()),
     }
     payload.update(msg)
-    _log_dup("metrics", payload, severity='INFO')
+    _log_dup("metrics", payload, logger=stdout_logger, severity='INFO')
 
 
 def persist(tag: str, msg: dict) -> None:
@@ -67,4 +67,4 @@ def persist(tag: str, msg: dict) -> None:
         "timestamp": int(time.time()),
     }
     payload.update(msg)
-    _log_dup("persist", payload, severity='INFO')
+    _log_dup("persist", payload, logger=stdout_logger, severity='INFO')
