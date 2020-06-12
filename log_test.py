@@ -6,7 +6,9 @@ import pytest
 def log(monkeypatch):
     # using data-stat@kakapo-grandwin.iam.gserviceaccount.com account.
     # monkeypatch.setenv('GOOGLE_APPLICATION_CREDENTIALS', '')
-    monkeypatch.setenv('GOOGLE_CLOUD_PROJECT', os.environ.get('GCLOUD_PROJECT', 'dataprocess'))
+    project = os.environ.get('GCLOUD_PROJECT')
+    if project:
+        monkeypatch.setenv('GOOGLE_CLOUD_PROJECT', project)
 
     import log
     log.init("data", "test")

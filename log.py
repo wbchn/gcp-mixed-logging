@@ -5,16 +5,16 @@ import os
 import time
 from typing import Any
 
-from google.cloud import logging
+import google.cloud.logging as google_logging
 
-stdout_logger: logging.logger.Logger
-stderr_logger: logging.logger.Logger
+stdout_logger: google_logging.logger.Logger
+stderr_logger: google_logging.logger.Logger
 
 
 def init(module: str, stage: str, **kw):
     """Log init"""
     global stdout_logger, stderr_logger
-    client = logging.Client()
+    client = google_logging.Client()
 
     stdout_name = f'{module}_{stage}_stdout'
     stderr_name = f'{module}_{stage}_stderr'
@@ -22,30 +22,39 @@ def init(module: str, stage: str, **kw):
     stderr_logger = client.logger(stderr_name)
 
 
-def _log_dup(tag: str, msg: Any, logger: logging.logger.Logger=None, severity='INFO', **kw) -> None:
+def _format(tag: str, msg: Any) -> dict:
     if isinstance(msg, str):
         msg = {"message": msg}
-
     msg['tag'] = tag
-    logger.log_struct(msg, severity='INFO')
+    return msg
 
 
-def debug(msg):
+def _log_dup(
+    tag: str, msg: Any, logger: google_logging.logger.Logger = None,
+    severity: str = 'INFO', **kw
+) -> None:
+    if logger is None:
+        global stdout_logger
+        logger = stdout_logger
+    logger.log_struct(_format(tag, msg), severity='INFO')
+
+
+def debug(msg: Any):
     """Write debug log to Cloud Logging."""
     return _log_dup("debug", msg, logger=stdout_logger, severity='INFO')
 
 
-def info(msg):
+def info(msg: Any):
     """Write info log to Cloud Logging."""
     return _log_dup("info", msg, logger=stdout_logger, severity='INFO')
 
 
-def warning(msg):
+def warning(msg: Any):
     """Write warning log to Cloud Logging."""
     return _log_dup("warn", msg, logger=stderr_logger, severity='WARNING')
 
 
-def error(msg):
+def error(msg: Any):
     """Write error log to Cloud Logging."""
     return _log_dup("error", msg, logger=stderr_logger, severity='ERROR')
 
