@@ -7,19 +7,16 @@ from typing import Any
 
 import google.cloud.logging as google_logging
 
-stdout_logger: google_logging.logger.Logger
-stderr_logger: google_logging.logger.Logger
+_logger: google_logging.logger.Logger
 
 
 def init(module: str, stage: str, **kw):
     """Log init"""
-    global stdout_logger, stderr_logger
+    global _logger
     client = google_logging.Client()
 
-    stdout_name = f'{module}_{stage}_stdout'
-    stderr_name = f'{module}_{stage}_stderr'
-    stdout_logger = client.logger(stdout_name)
-    stderr_logger = client.logger(stderr_name)
+    stdout_name = f'{module}_{stage}'
+    _logger = client.logger(stdout_name)
 
 
 def _format(tag: str, msg: Any) -> dict:
@@ -34,39 +31,38 @@ def _log_dup(
     severity: str = 'INFO', **kw
 ) -> None:
     if logger is None:
-        global stdout_logger
-        logger = stdout_logger
-    logger.log_struct(_format(tag, msg), severity='INFO')
+        logger = _logger
+    logger.log_struct(_format(tag, msg), severity='INFO', **kw)
 
 
-def debug(msg: Any):
+def debug(msg: Any, **kw):
     """Write debug log to Cloud Logging."""
-    return _log_dup("debug", msg, logger=stdout_logger, severity='INFO')
+    return _log_dup("debug", msg, logger=_logger, severity='DEBUG', **kw)
 
 
-def info(msg: Any):
+def info(msg: Any, **kw):
     """Write info log to Cloud Logging."""
-    return _log_dup("info", msg, logger=stdout_logger, severity='INFO')
+    return _log_dup("info", msg, logger=_logger, severity='INFO', **kw)
 
 
-def warning(msg: Any):
+def warning(msg: Any, **kw):
     """Write warning log to Cloud Logging."""
-    return _log_dup("warn", msg, logger=stderr_logger, severity='WARNING')
+    return _log_dup("warn", msg, logger=_logger, severity='WARNING', **kw)
 
 
-def error(msg: Any):
+def error(msg: Any, **kw):
     """Write error log to Cloud Logging."""
-    return _log_dup("error", msg, logger=stderr_logger, severity='ERROR')
+    return _log_dup("error", msg, logger=_logger, severity='ERROR', **kw)
 
 
-def metric(tag: str, msg: dict) -> None:
+def metric(tag: str, msg: dict, **kw) -> None:
     """Send metrics data to ElasticSearch"""
     payload = {
         "tag": tag,
         "@timestamp": int(time.time()),
     }
     payload.update(msg)
-    _log_dup("metrics", payload, logger=stdout_logger, severity='INFO')
+    _log_dup("metrics", payload, logger=_logger, severity='INFO', **kw)
 
 
 def persist(tag: str, msg: dict) -> None:
@@ -76,4 +72,4 @@ def persist(tag: str, msg: dict) -> None:
         "timestamp": int(time.time()),
     }
     payload.update(msg)
-    _log_dup("persist", payload, logger=stdout_logger, severity='INFO')
+    _log_dup("persist", payload, logger=_logger, severity='INFO')

@@ -10,5 +10,4 @@ test:
 
 .PHONY: clean
 clean:
-	gcloud beta logging logs delete data_test_stdout --project $(GCLOUD_PROJECT) --quiet
-	gcloud beta logging logs delete data_test_stderr --project $(GCLOUD_PROJECT) --quiet
+	gcloud beta logging logs delete data_test --project $(GCLOUD_PROJECT) --quiet

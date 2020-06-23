@@ -12,7 +12,7 @@ def log(monkeypatch):
 
     import log
     log.init("data", "test")
-    print(log.stdout_logger.full_name)
+    print(log._logger.full_name)
     return log
 
 
