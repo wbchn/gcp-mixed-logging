@@ -5,18 +5,21 @@ import os
 import time
 from typing import Any
 
+from aiofluent import FluentSender
 import google.cloud.logging as google_logging
 
 _logger: google_logging.logger.Logger
+_sender: FluentSender
 
 
-def init(module: str, stage: str, **kw):
+def init(module: str, stage: str, fluent_host: str, fluent_port:int, **kw):
     """Log init"""
-    global _logger
+    global _logger, _sender
     client = google_logging.Client()
 
     stdout_name = f'{module}_{stage}'
     _logger = client.logger(stdout_name)
+    _sender = FluentSender(host=fluent_host, port=fluent_port, timeout=3)
 
 
 def _format(tag: str, msg: Any) -> dict:
@@ -72,4 +75,4 @@ def persist(tag: str, msg: dict) -> None:
         "timestamp": int(time.time()),
     }
     payload.update(msg)
-    _log_dup("persist", payload, logger=_logger, severity='INFO')
+    _sender.emit(label, {'message': message})
