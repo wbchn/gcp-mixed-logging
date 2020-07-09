@@ -6,7 +6,7 @@ GCLOUD_PROJECT:=$(shell gcloud config list project --format="value(core.project)
 
 .PHONY: test
 test:
-	GCLOUD_PROJECT=$(GCLOUD_PROJECT) pytest
+	GCLOUD_PROJECT=$(GCLOUD_PROJECT) python3 setup.py test
 
 .PHONY: clean
 clean:
