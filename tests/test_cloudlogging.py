@@ -1,7 +1,15 @@
 import os
+
+import mock
 import pytest
 
 from gcp_mixed_logging import mixedlogging
+
+
+
+def _make_credentials():
+    import google.auth.credentials
+    return mock.Mock(spec=google.auth.credentials.Credentials)
 
 
 @pytest.fixture
@@ -13,6 +21,7 @@ def log(monkeypatch):
         monkeypatch.setenv('GOOGLE_CLOUD_PROJECT', project)
 
     log = mixedlogging("data", "test")
+        # project="test-project", credentials=_make_credentials())
     print(log._logger.full_name)
     return log
 
@@ -50,3 +59,25 @@ def test_metric_struct(log):
         }
     })
 
+
+class _Client(object):
+    def __init__(self, project, connection=None):
+        self.project = project
+        self._connection = connection
+
+
+class _Bugout(Exception):
+    pass
+
+
+class _Connection(object):
+
+    _called_with = None
+
+    def __init__(self, *responses):
+        self._responses = responses
+
+    def api_request(self, **kw):
+        self._called_with = kw
+        response, self._responses = self._responses[0], self._responses[1:]
+        return response

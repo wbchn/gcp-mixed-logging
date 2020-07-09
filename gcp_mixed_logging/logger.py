@@ -22,9 +22,10 @@ class mixedlogging(object):
             **kw):
         """
         """
-        self._client = google_logging.Client()
+        self._client = google_logging.Client(**kw)
 
         stdout_name = f'{module}_{stage}'
+        # TODO: using google.cloud.logging.logger.Batch
         self._logger = self._client.logger(stdout_name)
         self._sender = fluent.asyncsender.FluentSender(
             f'persist.{stdout_name}',
