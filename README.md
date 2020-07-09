@@ -2,15 +2,62 @@
 
 ## Install and config
 
+``` Shell
+pip install gcp-mixed-logging
+or 
+pip install -i https://pypi.org/project gcp-mixed-logging
+```
+
 ### Cloud Logging
 
-`pip install google-cloud-logging`
+**Logs Writer**: https://cloud.google.com/logging/docs/setup/python
 
-** Logs Writer 角色 **: https://cloud.google.com/logging/docs/setup/python
+### Fluentd
+
+TODO
+
+## Usage
+
+``` Python
+from gcp_mixed_logging import mixedlogging
+
+# using on GCE with local fluent
+log = mixedlogging('module', stage='prod')
+
+# using with credential and remote fluent host
+log = mixedlogging(
+    'module', stage='prod',
+    fluent_host='ip or dns', fluent_port=24224,
+    project='project-id', credentials=Credentials(),
+    )
+
+# cloud logging: plain text
+log.debug("this is a debug message")
+log.info("this is a info message")
+log.warn("this is a warn message")
+log.error("this is a error message")
+
+# cloud logging: struct message
+log.info({
+    "user": "Mark",
+    "age": 25
+})
+
+# fluent:
+# 1. time append to log
+# 2. send to fluent with tag: 'module-prod.user-info'
+log.persist("user-info", {
+    "user": "Mark",
+    "age": 25
+})
+
+```
+
+## More
 
 ### Auth 说明
 
-参照 `google.auth`的认证方式:
+Refer to `google.auth`:
 
 
 1. If the environment variable ``GOOGLE_APPLICATION_CREDENTIALS`` is set

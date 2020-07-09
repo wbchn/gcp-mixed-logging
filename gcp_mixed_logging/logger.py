@@ -76,6 +76,7 @@ class mixedlogging(object):
 
     def persist(self, tag: str, msg: dict) -> None:
         """Save log to GCS."""
+        # TODO: add insert id
         payload = {
             "tag": tag,
             "time": int(time.time()),
