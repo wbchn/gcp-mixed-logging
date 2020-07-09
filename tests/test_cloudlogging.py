@@ -3,7 +3,7 @@ import os
 import mock
 import pytest
 
-from gcp_mixed_logging import mixedlogging
+from gcp_mixed_logging import MixedLogging
 
 
 
@@ -20,9 +20,8 @@ def log(monkeypatch):
     if project:
         monkeypatch.setenv('GOOGLE_CLOUD_PROJECT', project)
 
-    log = mixedlogging("data", "test")
+    log = MixedLogging("data", "test")
         # project="test-project", credentials=_make_credentials())
-    print(log._logger.full_name)
     return log
 
 

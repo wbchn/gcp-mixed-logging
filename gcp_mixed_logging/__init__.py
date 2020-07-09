@@ -1,8 +1,8 @@
-from .logger import mixedlogging
+from .logger import MixedLogging
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 __all__ = (
     "__version__",
-    "mixedlogging",
+    "MixedLogging",
 )

@@ -1,13 +1,12 @@
 import os
 import pytest
 
-from gcp_mixed_logging import mixedlogging
+from gcp_mixed_logging import MixedLogging
 
 
 @pytest.fixture
 def log(monkeypatch):
-    log = mixedlogging("data", "test")
-    print(log._logger.full_name)
+    log = MixedLogging("data", "test")
     return log
 
 

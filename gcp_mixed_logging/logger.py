@@ -1,18 +1,39 @@
 """
 
 """
+import datetime
+import logging
 import os
 import time
 from typing import Any
 
-import google.cloud.logging as google_logging
 import fluent.asyncsender
 import fluent.event
+import google.cloud.logging
+from google.cloud.logging import _helpers
+from google.cloud.logging.handlers import CloudLoggingHandler
+from google.cloud.logging.handlers.transports.background_thread import _Worker
 
 
-class mixedlogging(object):
-    _client: google_logging.Client
-    _logger: google_logging.logger.Logger
+def json_enqueue(self, record: logging.LogRecord, message, resource=None, labels=None, trace=None, span_id=None):
+    entry = {
+        "info": {"python_logger": record.name, **record.args},
+        "severity": _helpers._normalize_severity(record.levelno),
+        "resource": resource,
+        "labels": labels,
+        "trace": trace,
+        "span_id": span_id,
+        "timestamp": datetime.datetime.utcfromtimestamp(record.created),
+    }
+    self._queue.put_nowait(entry)
+
+
+_Worker.enqueue = json_enqueue
+
+
+class MixedLogging(object):
+    _client: google.cloud.logging.Client
+    _logger: logging.Logger
     _sender: fluent.asyncsender.FluentSender
 
     def __init__(
@@ -22,13 +43,17 @@ class mixedlogging(object):
             **kw):
         """
         """
-        self._client = google_logging.Client(**kw)
 
-        stdout_name = f'{module}_{stage}'
-        # TODO: using google.cloud.logging.logger.Batch
-        self._logger = self._client.logger(stdout_name)
+        logger_name = f'{module}_{stage}'
+
+        self._client = google.cloud.logging.Client(**kw)
+        handler = CloudLoggingHandler(self._client, name=logger_name)
+        self._logger = logging.getLogger(logger_name)
+        self._logger.handlers = [handler]  # replace existing handlers
+        self._logger.setLevel(logging.INFO)
+
         self._sender = fluent.asyncsender.FluentSender(
-            f'persist.{stdout_name}',
+            f'persist.{logger_name}',
             host=fluent_host,
             port=fluent_port,
             timeout=3,
@@ -39,31 +64,24 @@ class mixedlogging(object):
             msg = {"message": msg}
         return msg
 
-    def _log_dup(
-        self,
-        msg: Any,
-        severity: str = 'INFO', **kw
-    ) -> None:
-        self._logger.log_struct(self._format(msg), severity=severity, **kw)
-
     def close(self):
         self._sender.close()
 
     def debug(self, msg: Any, **kw):
         """Write debug log to Cloud Logging."""
-        return self._log_dup(msg, severity='DEBUG', **kw)
+        return self._logger.debug(None, self._format(msg), **kw)
 
     def info(self, msg: Any, **kw):
         """Write info log to Cloud Logging."""
-        return self._log_dup(msg, severity='INFO', **kw)
+        return self._logger.info(None, self._format(msg), **kw)
 
     def warning(self, msg: Any, **kw):
         """Write warning log to Cloud Logging."""
-        return self._log_dup(msg, severity='WARNING', **kw)
+        return self._logger.warning(None, self._format(msg), **kw)
 
     def error(self, msg: Any, **kw):
         """Write error log to Cloud Logging."""
-        return self._log_dup(msg, severity='ERROR', **kw)
+        return self._logger.error(None, self._format(msg), **kw)
 
     def metric(self, tag: str, msg: dict, **kw) -> None:
         """Send metrics data to ElasticSearch"""
@@ -72,7 +90,7 @@ class mixedlogging(object):
             "@timestamp": int(time.time()),
         }
         payload.update(msg)
-        self._log_dup(payload, severity='INFO', **kw)
+        return self._logger.info(None, self._format(msg), **kw)
 
     def persist(self, tag: str, msg: dict) -> None:
         """Save log to GCS."""

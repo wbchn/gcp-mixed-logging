@@ -19,13 +19,13 @@ TODO
 ## Usage
 
 ``` Python
-from gcp_mixed_logging import mixedlogging
+from gcp_mixed_logging import MixedLogging
 
 # using on GCE with local fluent
-log = mixedlogging('module', stage='prod')
+log = MixedLogging('module', stage='prod')
 
 # using with credential and remote fluent host
-log = mixedlogging(
+log = MixedLogging(
     'module', stage='prod',
     fluent_host='ip or dns', fluent_port=24224,
     project='project-id', credentials=Credentials(),
