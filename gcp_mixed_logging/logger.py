@@ -25,6 +25,8 @@ def json_enqueue(self, record: logging.LogRecord, message, resource=None, labels
         "span_id": span_id,
         "timestamp": datetime.datetime.utcfromtimestamp(record.created),
     }
+    if record.msg:
+        entry['message'] = record.msg
     self._queue.put_nowait(entry)
 
 
@@ -44,16 +46,18 @@ class MixedLogging(object):
         """
         """
 
-        logger_name = f'{module}_{stage}'
+        self.logger_name = f'{module}_{stage}'
 
         self._client = google.cloud.logging.Client(**kw)
-        handler = CloudLoggingHandler(self._client, name=logger_name)
-        self._logger = logging.getLogger(logger_name)
+        handler = CloudLoggingHandler(self._client, name=self.logger_name)
+        self._logger = logging.getLogger(self.logger_name)
         self._logger.handlers = [handler]  # replace existing handlers
         self._logger.setLevel(logging.INFO)
 
+        self.cloud_logging_name = self._client.logger(self.logger_name).full_name
+
         self._sender = fluent.asyncsender.FluentSender(
-            f'persist.{logger_name}',
+            self.logger_name,
             host=fluent_host,
             port=fluent_port,
             timeout=3,
@@ -92,7 +96,7 @@ class MixedLogging(object):
         payload.update(msg)
         return self._logger.info(None, self._format(msg), **kw)
 
-    def persist(self, tag: str, msg: dict) -> None:
+    def persist(self, tag: str, msg: dict, track: bool = False, **kw) -> None:
         """Save log to GCS."""
         # TODO: add insert id
         payload = {
@@ -100,4 +104,6 @@ class MixedLogging(object):
             "time": int(time.time()),
         }
         payload.update(msg)
+        if track:
+            self._logger.info(None, payload, **kw)
         self._sender.emit(tag, payload)
