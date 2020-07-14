@@ -1,9 +1,12 @@
 """
 
 """
+import collections
 import datetime
 import logging
 import os
+import socket
+import threading
 import time
 from typing import Any
 
@@ -34,6 +37,10 @@ _Worker.enqueue = json_enqueue
 
 
 class MixedLogging(object):
+    hostname = socket.gethostname()
+    _persist_insertids = collections.defaultdict(int)
+    _insertid_lock = threading.Lock()
+
     _client: google.cloud.logging.Client
     _logger: logging.Logger
     _sender: fluent.asyncsender.FluentSender
@@ -98,9 +105,13 @@ class MixedLogging(object):
 
     def persist(self, tag: str, msg: dict, track: bool = False, **kw) -> None:
         """Save log to GCS."""
-        # TODO: add insert id
+        # increment insert id with locking
+        with self._insertid_lock:
+            self._persist_insertids[tag] += 1
         payload = {
+            "host": self.hostname,
             "tag": tag,
+            "insert_id": self._persist_insertids[tag],
             "time": int(time.time()),
         }
         payload.update(msg)
