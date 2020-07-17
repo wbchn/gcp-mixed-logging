@@ -1,4 +1,4 @@
-from .logger import MixedLogging
+from .logger_v2 import MixedLogging
 
 __version__ = "0.0.6"
 

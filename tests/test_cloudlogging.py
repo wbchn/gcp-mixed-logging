@@ -21,7 +21,7 @@ def log(monkeypatch):
         monkeypatch.setenv('GOOGLE_CLOUD_PROJECT', project)
 
     log = MixedLogging("data", "test")
-    print(log.cloud_logging_name)
+    print(log.cloudlogging_name)
         # project="test-project", credentials=_make_credentials())
     return log
 

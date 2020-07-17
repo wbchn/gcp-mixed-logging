@@ -6,8 +6,8 @@ from gcp_mixed_logging import MixedLogging
 
 @pytest.fixture
 def log(monkeypatch):
-    log = MixedLogging("data", "test")
-    print(log.cloud_logging_name)
+    log = MixedLogging("data", "test", fluent_host='35.192.24.239')
+    print(log.cloudlogging_name)
     
     return log
 
