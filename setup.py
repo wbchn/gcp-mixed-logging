@@ -12,7 +12,7 @@ with open(os.path.join(BASE_PATH, "README.md")) as readme:
 
 setup(
     name="gcp-mixed-logging",
-    version="0.0.6",
+    version="0.0.7",
     description="write log to cloud logging or fluentd, for app in gcp",
     long_description=long_description,
     long_description_content_type="text/markdown",
