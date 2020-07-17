@@ -1,6 +1,7 @@
 """
 
 """
+import atexit
 import collections
 import datetime
 import logging
@@ -70,13 +71,26 @@ class MixedLogging(object):
             timeout=3,
         )
 
+        atexit.register(self._sender.close)
+
+    @property
+    def is_alive(self):
+        """Returns True is the background thread is running."""
+        return self._logger is not None and self._sender is not None
+
     def _format(self, msg: Any) -> dict:
         if isinstance(msg, str):
             msg = {"message": msg}
         return msg
 
     def close(self):
+        if not self.is_alive:
+            return True
+        
         self._sender.close()
+        self._sender = None
+
+        return True
 
     def debug(self, msg: Any, **kw):
         """Write debug log to Cloud Logging."""
