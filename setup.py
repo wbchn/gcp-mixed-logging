@@ -9,10 +9,15 @@ BASE_PATH = os.path.dirname(__file__)
 with open(os.path.join(BASE_PATH, "README.md")) as readme:
     long_description = readme.read()
 
+INSTALL_REQUIREMENTS = [
+    "cached-property==1.5.1",
+    "fluent-logger==0.9.6",
+    "google-cloud-logging==1.15.0",
+]
 
 setup(
     name="gcp-mixed-logging",
-    version="0.0.7",
+    version="0.0.8",
     description="write log to cloud logging or fluentd, for app in gcp",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,7 +31,7 @@ setup(
     package_dir={'gcp_mixed_logging': 'gcp_mixed_logging'},
     packages=["gcp_mixed_logging"],
     python_requires=">=3.5.3",
-    install_requires=["google-cloud-logging>=1.15.0", "fluent-logger>=0.9.6"],
+    install_requires=INSTALL_REQUIREMENTS,
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
