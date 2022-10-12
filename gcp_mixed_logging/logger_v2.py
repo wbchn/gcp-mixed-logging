@@ -1,6 +1,7 @@
 """
 
 """
+import sys
 import atexit
 import collections
 import datetime
@@ -14,53 +15,17 @@ from typing import Any, Collection, Dict, List, Optional, Tuple, Type
 import fluent.asyncsender
 import fluent.event
 import google.auth
-from cached_property import cached_property
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from cached_property import cached_property
 from google.cloud import logging as gcp_logging
-from google.cloud.logging.handlers.transports.background_thread import (
+from google.cloud.logging_v2.handlers.transports.background_thread import (
     BackgroundThreadTransport,
     _Worker,
 )
-from google.cloud.logging.resource import Resource
-
-
-def monkeypatch_google_enqueue():
-    def raw_enqueue(self, record: dict, severity: str, resource=None, labels=None, trace=None, span_id=None):
-        entry = {
-            "info": record,
-            "severity": severity,
-            "resource": resource,
-            "labels": labels,
-            "trace": trace,
-            "span_id": span_id,
-            "timestamp": datetime.datetime.utcnow(),
-        }
-        self._queue.put_nowait(entry)
-
-    _Worker.enqueue = raw_enqueue
-
-
-class BackgroundTransport(BackgroundThreadTransport):
-    def __init__(
-        self,
-        client,
-        name,
-        **kw
-    ):
-        super(BackgroundTransport, self).__init__(client, name, **kw)
-        monkeypatch_google_enqueue()
-
-    def send(
-        self, record, severity="INFO", resource=None, labels=None, trace=None, span_id=None
-    ):
-        self.worker.enqueue(
-            record=record,
-            severity=severity,
-            resource=resource,
-            labels=labels,
-            trace=trace,
-            span_id=span_id,
-        )
-
+from google.cloud.logging_v2.resource import Resource
+from inspect import getframeinfo, stack
 
 _GLOBAL_RESOURCE = Resource(type="global", labels={})
 
@@ -68,6 +33,20 @@ _DEFAULT_SCOPESS = frozenset([
     "https://www.googleapis.com/auth/logging.read",
     "https://www.googleapis.com/auth/logging.write"
 ])
+
+
+def caller_reader(f):
+    """This wrapper updates the context with the callor infos"""
+
+    def wrapper(self, *args):
+        caller = getframeinfo(stack()[1][0])
+        self._filter.file = caller.filename
+        self._filter.line_n = caller.lineno
+        return f(self, *args)
+    return wrapper
+
+
+logging.info
 
 
 class MixedLogging(object):
@@ -123,9 +102,9 @@ class MixedLogging(object):
         return client
 
     @cached_property
-    def _transport(self) -> BackgroundTransport:
+    def _transport(self) -> BackgroundThreadTransport:
         """Object responsible for sending data to Stackdriver"""
-        return BackgroundTransport(self._cloudligging_client, self.name)
+        return BackgroundThreadTransport(self._cloudligging_client, self.name)
 
     @cached_property
     def _fluent_sender(self) -> fluent.sender:
@@ -141,16 +120,23 @@ class MixedLogging(object):
     def cloudlogging_name(self):
         return f"projects/{self._cloudligging_client.project}/logs/{self.name}"
 
-    def cloudligging_emit(self, record: Any, severity: str = "INFO") -> None:
+    def cloudligging_emit(self, msg: Any, severity: str = logging.INFO) -> None:
         """Actually log the specified logging record.
 
         :param record: The record to be logged.
         :type record: logging.LogRecord
         """
         frame = inspect.stack()[2]
-        record = self.format(record, frame)
+        record = logging.LogRecord(
+            self.name, severity, frame.filename, frame.lineno, msg, None, None, frame.function
+        )
+        message = self.format(msg, frame)
         self._transport.send(
-            record, severity, resource=self.resource, labels=self.labels)
+            record,
+            message=message,
+            severity=severity,
+            resource=self.resource,
+            labels=self.labels)
 
     @property
     def is_alive(self):
